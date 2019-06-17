@@ -109,7 +109,7 @@ class ADPAPIConnection(object):
             if self.getConfig().certString is True:
                 s = requests.Session()
                 s.mount(self.getConfig().getTokenServerURL(),SSLCustomAdapter(cert=self.getConfig().getSSLCertString()
-                                                                              ,key=self.getConfig().getSSLCertKey())
+                                                                              ,key=self.getConfig().getSSLKeyString())
                         )#, SSLAdapter(ssl.PROTOCOL_TLSv1))
                 formData = {'grant_type': self.getConfig().getGrantType()}
                 headers = {'user-agent': self.userAgent}
