@@ -32,7 +32,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from io import BytesIO
 
-class SSLAdapter(HTTPAdapter):
+class SSLCustomAdapter(HTTPAdapter):
     '''https://github.com/kennethreitz/requests/issues/2519#issuecomment-493762086'''
 
     def __init__(self,cert,key):
@@ -108,18 +108,27 @@ class ADPAPIConnection(object):
         else:
             if self.getConfig().certString is True:
                 s = requests.Session()
-                s.mount(self.getConfig().getTokenServerURL())#, SSLAdapter(ssl.PROTOCOL_TLSv1))
+                s.mount(self.getConfig().getTokenServerURL(),SSLCustomAdapter(cert=self.getConfig().getSSLCertString()
+                                                                              ,key=self.getConfig().getSSLCertKey())
+                        )#, SSLAdapter(ssl.PROTOCOL_TLSv1))
+                formData = {'grant_type': self.getConfig().getGrantType()}
+                headers = {'user-agent': self.userAgent}
+                r = s.post(self.getConfig().getTokenServerURL(),
+                           headers=(headers),
+                           auth=(self.getConfig().getClientID(),
+                                 self.getConfig().getClientSecret()),
+                           data=(formData))
             else:
                 s = requests.Session()
-            formData = {'grant_type': self.getConfig().getGrantType()}
-            headers = {'user-agent': self.userAgent}
-            r = s.post(self.getConfig().getTokenServerURL(),
-                              headers=(headers),
-                              cert=(self.getConfig().getSSLCertPath(),
-                                    self.getConfig().getSSLKeyPath()),
-                              auth=(self.getConfig().getClientID(),
-                                    self.getConfig().getClientSecret()),
-                              data=(formData))
+                formData = {'grant_type': self.getConfig().getGrantType()}
+                headers = {'user-agent': self.userAgent}
+                r = s.post(self.getConfig().getTokenServerURL(),
+                                  headers=(headers),
+                                  cert=(self.getConfig().getSSLCertPath(),
+                                        self.getConfig().getSSLKeyPath()),
+                                  auth=(self.getConfig().getClientID(),
+                                        self.getConfig().getClientSecret()),
+                                  data=(formData))
             logging.debug(r.status_code)
             logging.debug(r.json())
             if (r.status_code == requests.codes.ok):
