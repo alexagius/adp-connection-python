@@ -30,21 +30,32 @@ from adp_connection import __version__
 import ssl
 import requests
 from requests.adapters import HTTPAdapter
-from io import BytesIO
+from io import BytesIO,StringIO, BufferedReader, TextIOBase
+from requests_toolbelt import SSLAdapter
+from requests_toolbelt.adapters.x509 import X509Adapter
+import OpenSSL
+from OpenSSL.crypto import load_pkcs12
+from oauth2client._helpers import _to_bytes
+from oauth2client.crypt import OpenSSLVerifier
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from OpenSSL import crypto
+from cryptography.hazmat.primitives import serialization
 
-class SSLCustomAdapter(HTTPAdapter):
-    '''https://github.com/kennethreitz/requests/issues/2519#issuecomment-493762086'''
 
-    def __init__(self,cert,key):
-        self.cert = cert
-        self.key = key
-
-    def init_poolmanager(self, *args, **kwargs):
-        context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-        context.load_cert_chain(certfile=self.cery,
-                                key=self.key)
-        kwargs['ssl_context'] = context
-        return super(self.init_poolmanager).__init__(*args, **kwargs)
+# class SSLCustomAdapter(HTTPAdapter):
+#     '''https://github.com/kennethreitz/requests/issues/2519#issuecomment-493762086'''
+#
+#     def __init__(self,cert,key):
+#         self.cert = cert
+#         self.key = key
+#
+#     def init_poolmanager(self, *args, **kwargs):
+#         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+#         context.load_cert_chain(certfile=self.cery,
+#                                 key=self.key)
+#         kwargs['ssl_context'] = context
+#         return super(SSLCustomAdapter,self).__init__(*args, **kwargs)
 
 
 class ADPAPIConnection(object):
@@ -106,20 +117,27 @@ class ADPAPIConnection(object):
             logging.debug('connecting without config init')
             raise ConfigError(self.__class__.__name__, Error.errDict['initBad']['errCode'], Error.errDict['initBad']['errMsg'])
         else:
+            s = requests.Session()
             if self.getConfig().certString is True:
-                s = requests.Session()
-                s.mount(self.getConfig().getTokenServerURL(),SSLCustomAdapter(cert=self.getConfig().getSSLCertString()
-                                                                              ,key=self.getConfig().getSSLKeyString())
-                        )#, SSLAdapter(ssl.PROTOCOL_TLSv1))
+                crrt=str(self.getConfig().getSSLCertString()).replace(' ','').replace('BEGINCERTIFICATE','BEGIN CERTIFICATE').replace('ENDCERTIFICATE','END CERTIFICATE')
+                keey=str(self.getConfig().getSSLKeyString()).replace(' ','').replace('BEGINRSAPRIVATEKEY','BEGIN RSA PRIVATE KEY').replace('ENDRSAPRIVATEKEY','END RSA PRIVATE KEY')
+
+                # crrt=OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, crrt2)
+                # keey=OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, keey2, passphrase=None)
+
+                a=X509Adapter(cert_bytes=crrt, pk_bytes=keey)
+                s.mount(self.getConfig().getTokenServerURL() ,a)
                 formData = {'grant_type': self.getConfig().getGrantType()}
                 headers = {'user-agent': self.userAgent}
                 r = s.post(self.getConfig().getTokenServerURL(),
                            headers=(headers),
+                           # cert=(StringIO(self.getConfig().getSSLCertString()),
+                           #       StringIO(self.getConfig().getSSLKeyPath())),
                            auth=(self.getConfig().getClientID(),
                                  self.getConfig().getClientSecret()),
                            data=(formData))
             else:
-                s = requests.Session()
+
                 formData = {'grant_type': self.getConfig().getGrantType()}
                 headers = {'user-agent': self.userAgent}
                 r = s.post(self.getConfig().getTokenServerURL(),

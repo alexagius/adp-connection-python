@@ -150,6 +150,8 @@ class ConnectionConfiguration(object):
             raise ConfigError(self.__class__.__name__, Error.errDict['clientSecret']['errCode'], Error.errDict['clientSecret']['errMsg'])
 
         if ('sslCertString' in configObj):
+            # print(configObj['sslCertString'])
+            # print(configObj['sslKeyString'])
             self.setSSLCertString(configObj['sslCertString'])
         if ('sslCertPath' in configObj):
             self.setSSLCertPath(configObj['sslCertPath'])
