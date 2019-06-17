@@ -46,8 +46,6 @@ class SSLAdapter(HTTPAdapter):
         kwargs['ssl_context'] = context
         return super(self.init_poolmanager).__init__(*args, **kwargs)
 
-session = requests.session()
-session.mount('https://my_protected_site.com', SSLAdapter())
 
 class ADPAPIConnection(object):
     """ Base class for maintaining ADP connection status and information
