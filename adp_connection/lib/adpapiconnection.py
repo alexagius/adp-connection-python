@@ -27,6 +27,28 @@ from connectionconfiguration import *
 from adp_connection import __version__
 
 
+import ssl
+import requests
+from requests.adapters import HTTPAdapter
+from io import BytesIO
+
+class SSLAdapter(HTTPAdapter):
+    '''https://github.com/kennethreitz/requests/issues/2519#issuecomment-493762086'''
+
+    def __init__(self,cert,key):
+        self.cert = cert
+        self.key = key
+
+    def init_poolmanager(self, *args, **kwargs):
+        context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        context.load_cert_chain(certfile=self.cery,
+                                key=self.key)
+        kwargs['ssl_context'] = context
+        return super(self.init_poolmanager).__init__(*args, **kwargs)
+
+session = requests.session()
+session.mount('https://my_protected_site.com', SSLAdapter())
+
 class ADPAPIConnection(object):
     """ Base class for maintaining ADP connection status and information
 
@@ -86,9 +108,14 @@ class ADPAPIConnection(object):
             logging.debug('connecting without config init')
             raise ConfigError(self.__class__.__name__, Error.errDict['initBad']['errCode'], Error.errDict['initBad']['errMsg'])
         else:
+            if self.getConfig().certString is True:
+                s = requests.Session()
+                s.mount(self.getConfig().getTokenServerURL())#, SSLAdapter(ssl.PROTOCOL_TLSv1))
+            else:
+                s = requests.Session()
             formData = {'grant_type': self.getConfig().getGrantType()}
             headers = {'user-agent': self.userAgent}
-            r = requests.post(self.getConfig().getTokenServerURL(),
+            r = s.post(self.getConfig().getTokenServerURL(),
                               headers=(headers),
                               cert=(self.getConfig().getSSLCertPath(),
                                     self.getConfig().getSSLKeyPath()),

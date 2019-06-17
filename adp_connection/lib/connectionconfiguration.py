@@ -29,10 +29,16 @@ class ConnectionConfiguration(object):
     config: a dictionary of all the configuration
     parameters required for setting up a connection
     initDone: tracks whether the configuration has been
-    initialized """
+    initialized
+
+    Added sslCertString and sslKeyString to convert w BytesIO
+    if Strings instead of Paths certString = True
+
+    """
 
     config = dict({})
     initDone = False
+    certString = False
 
     def __init__(self):
         """ Initialize the dictionary keys:
@@ -53,6 +59,10 @@ class ConnectionConfiguration(object):
         self.config['grantType'] = ''
         self.config['authorizationCode'] = ''
         self.config['disconnectURL'] = ''
+        self.config['sslCertString'] = ''
+        self.config['sslKeyString'] = ''
+
+    ###SET
 
     def setClientID(self, clientID):
         self.config['clientID'] = clientID
@@ -78,6 +88,14 @@ class ConnectionConfiguration(object):
     def setGrantType(self, grantType):
         self.config['grantType'] = grantType
 
+    def setSSLCertString(self, sslCertString):
+        self.config['sslCertString'] = sslCertString
+
+    def setSSLKeyString(self, sslKeyString):
+        self.config['sslKeyString'] = sslKeyString
+
+    ###GET
+
     def getClientID(self):
         return self.config['clientID']
 
@@ -102,6 +120,14 @@ class ConnectionConfiguration(object):
     def getGrantType(self):
         return self.config['grantType']
 
+    def getSSLCertString(self):
+        return self.config['sslCertString']
+
+    def getSSLKeyString(self):
+        return self.config['sslKeyString']
+
+
+
     def init(self, configObj):
         """ Method to initialize the common config parameters:
         clientID, clientSecret, sslCertPath, sslKeyPath,
@@ -122,16 +148,40 @@ class ConnectionConfiguration(object):
         else:
             logging.debug('Conf Error: ' + Error.errDict['clientSecret']['errCode'] + ': ' + Error.errDict['clientSecret']['errMsg'])
             raise ConfigError(self.__class__.__name__, Error.errDict['clientSecret']['errCode'], Error.errDict['clientSecret']['errMsg'])
+
+        if ('sslCertString' in configObj):
+            self.setSSLCertString(configObj['sslCertString'])
         if ('sslCertPath' in configObj):
             self.setSSLCertPath(configObj['sslCertPath'])
         else:
-            logging.debug('Conf Error: ' + Error.errDict['sslCertPath']['errCode'] + ': ' + Error.errDict['sslCertPath']['errMsg'])
-            raise ConfigError(self.__class__.__name__, Error.errDict['sslCertPath']['errCode'], Error.errDict['sslCertPath']['errMsg'])
+            if ('sslCertString' not in configObj):
+                logging.debug('Conf Error: ' + Error.errDict['sslCertPath']['errCode'] + ': ' + Error.errDict['sslCertPath']['errMsg'],' and no sslCertString specified')
+                raise ConfigError(self.__class__.__name__, Error.errDict['sslCertPath']['errCode'], Error.errDict['sslCertPath']['errMsg'],' and no sslCertString specified')
+            else:
+                logging.debug('sslCertString is specified. sslCertPath not specified')
+
+        if ('sslKeyString' in configObj):
+            self.setSSLKeyString(configObj['sslKeyString'])
         if ('sslKeyPath' in configObj):
             self.setSSLKeyPath(configObj['sslKeyPath'])
         else:
-            logging.debug('Conf Error: ' + Error.errDict['sslKeyPath']['errCode'] + ': ' + Error.errDict['sslKeyPath']['errMsg'])
-            raise ConfigError(self.__class__.__name__, Error.errDict['sslKeyPath']['errCode'], Error.errDict['sslKeyPath']['errMsg'])
+            if ('sslKeyString' not in configObj):
+                logging.debug('Conf Error: ' + Error.errDict['sslKeyPath']['errCode'] + ': ' + Error.errDict['sslKeyPath']['errMsg'])
+                raise ConfigError(self.__class__.__name__, Error.errDict['sslKeyPath']['errCode'], Error.errDict['sslKeyPath']['errMsg'])
+            else:
+                logging.debug('sslKeyString is specified. sslKeyPath not specified')
+
+        string_cert = False
+
+        if ('sslKeyString' in configObj) and ('sslCertString' in configObj):
+            string_cert = True
+        elif ('sslCertPath' in configObj) and ('sslKeyPath' in configObj):
+            pass
+        else:
+            raise('you need either two strings or two certs')
+
+
+
         if ('tokenServerURL' in configObj):
             self.setTokenServerURL(configObj['tokenServerURL'])
         else:
@@ -155,11 +205,13 @@ class ConnectionConfiguration(object):
         if (configObj['grantType'] == 'client_credentials'):
             ccConfig = ClientCredentialsConfiguration()
             ccConfig.initDone = True
+            ccConfig.certString = string_cert
             return ccConfig
         elif (configObj['grantType'] == 'authorization_code'):
             acConfig = AuthorizationCodeConfiguration()
             acConfig.init(configObj)
             acConfig.initDone = True
+            acConfig.certString = string_cert
             return acConfig
         else:
             logging.debug('Conf Error: ' + Error.errDict['grantTypeBad']['errCode'] + ': ' + Error.errDict['grantTypeBad']['errMsg'])
