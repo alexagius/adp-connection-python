@@ -111,7 +111,11 @@ class ADPAPIConnection(object):
         like grant_type, ssl certificates, clientID and clientSecret. Upon a
         successful response, updates the connection information with the appropriate
         status and access-token data. Also sets to sessionState if not already set.
-        On an unsuccessful attempt a ConnectError exception is raised """
+        On an unsuccessful attempt a ConnectError exception is raised
+
+
+        return requests.Session()
+        """
 
         if self.getConfig().initDone is False:
             logging.debug('connecting without config init')
@@ -157,6 +161,7 @@ class ADPAPIConnection(object):
                     self.setSessionState(str(uuid.uuid1()))
             else:
                 raise ConnectError(self.__class__.__name__, str(r.status_code), 'Unable to connect to ADP')
+        return s
 
     def disconnect(self):
         """ Sends a logout request to ADP if an access-token is present
