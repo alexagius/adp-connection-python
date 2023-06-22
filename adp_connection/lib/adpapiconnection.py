@@ -22,7 +22,7 @@ import requests
 import datetime
 import uuid
 import logging
-from connectexceptions import *
+from .connectexceptions import *
 from .connectionconfiguration import *
 from ..version import __version__
 
