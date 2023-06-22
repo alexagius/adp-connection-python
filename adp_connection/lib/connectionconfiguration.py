@@ -19,7 +19,7 @@
 # governing permissions and limitations under the License.
 
 import logging
-from connectexceptions import *
+from .connectexceptions import *
 
 
 class ConnectionConfiguration(object):

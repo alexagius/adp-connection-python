@@ -18,4 +18,4 @@
 # express or implied.  See the License for the specific language
 # governing permissions and limitations under the License.
 
-from adp_connection.version import __version__  # NOQA
+from .version import __version__  # NOQA
