@@ -24,7 +24,7 @@ import uuid
 import logging
 from connectexceptions import *
 from connectionconfiguration import *
-from adp_connection import __version__
+from ..version import __version__
 
 
 import ssl
